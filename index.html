@@ -128,81 +128,148 @@
     </div>
 
     <script>
-        function openUploadForm() {
-            document.getElementById('uploadForm').style.display = 'block';
-            document.getElementById('portfolioContainer').style.display = 'none';
-        }
+document.addEventListener('DOMContentLoaded', function() {
+    loadPortfolio();
+});
 
-        document.getElementById('contentForm').addEventListener('submit', function(event) {
-            event.preventDefault();
+function openUploadForm() {
+    document.getElementById('uploadForm').style.display = 'block';
+    document.getElementById('portfolioContainer').style.display = 'none';
+}
 
-            const videoTitle = document.getElementById('videoTitle').value;
-            const videoFile = document.getElementById('videoFile').files[0]; // Get the first file
-            const audioFile = document.getElementById('audioFile').files[0]; // Get the first file
-
-            document.getElementById('uploadForm').style.display = 'none';
-            document.getElementById('portfolioContainer').style.display = 'block';
-
-            const portfolioContainer = document.getElementById('portfolioContainer');
-            const portfolioItem = document.createElement('div');
-            portfolioItem.classList.add('portfolio-item');
-
-            const portfolioDetails = document.createElement('div');
-            portfolioDetails.classList.add('portfolio-details');
-
-            const titleElement = document.createElement('h3');
-            titleElement.textContent = videoTitle;
-
-            const videoFileName = document.createElement('p');
-            videoFileName.textContent = `Video: ${videoFile ? videoFile.name : 'N/A'}`;
-
-            const audioFileName = document.createElement('p');
-            audioFileName.textContent = `Audio: ${audioFile ? audioFile.name : 'N/A'}`;
-
-            portfolioDetails.appendChild(titleElement);
-            portfolioDetails.appendChild(videoFileName);
-            portfolioDetails.appendChild(audioFileName);
-            portfolioItem.appendChild(portfolioDetails);
-
-            const downloadButtons = document.createElement('div');
-            downloadButtons.classList.add('download-buttons');
-
-            if (videoFile) {
-                const videoDownloadButton = document.createElement('button');
-                videoDownloadButton.classList.add('download-button');
-                videoDownloadButton.textContent = 'Download Video';
-                videoDownloadButton.onclick = function() {
-                    const videoDownloadLink = document.createElement('a');
-                    videoDownloadLink.href = URL.createObjectURL(videoFile);
-                    videoDownloadLink.download = videoFile.name;
-                    document.body.appendChild(videoDownloadLink);
-                    videoDownloadLink.click();
-                    document.body.removeChild(videoDownloadLink);
-                    URL.revokeObjectURL(videoDownloadLink.href);
-                };
-                downloadButtons.appendChild(videoDownloadButton);
-            }
-
-            if (audioFile) {
-                const audioDownloadButton = document.createElement('button');
-                audioDownloadButton.classList.add('download-button');
-                audioDownloadButton.textContent = 'Download Audio';
-                audioDownloadButton.onclick = function() {
-                    const audioDownloadLink = document.createElement('a');
-                    audioDownloadLink.href = URL.createObjectURL(audioFile);
-                    audioDownloadLink.download = audioFile.name;
-                    document.body.appendChild(audioDownloadLink);
-                    audioDownloadLink.click();
-                    document.body.removeChild(audioDownloadLink);
-                    URL.revokeObjectURL(audioDownloadLink.href);
-                };
-                downloadButtons.appendChild(audioDownloadButton);
-            }
-
-            portfolioItem.appendChild(downloadButtons);
-            portfolioContainer.appendChild(portfolioItem);
-            document.getElementById('contentForm').reset();
+function loadPortfolio() {
+    const portfolioContainer = document.getElementById('portfolioContainer');
+    portfolioContainer.innerHTML = '<h2>Your Uploads</h2>';
+    const storedPortfolio = localStorage.getItem('portfolioItems');
+    if (storedPortfolio) {
+        const portfolioItems = JSON.parse(storedPortfolio);
+        portfolioItems.forEach(item => {
+            displayPortfolioItem(item);
         });
+    }
+}
+
+function savePortfolio(item) {
+    let portfolioItems = [];
+    const storedPortfolio = localStorage.getItem('portfolioItems');
+    if (storedPortfolio) {
+        portfolioItems = JSON.parse(storedPortfolio);
+    }
+    portfolioItems.push(item);
+    localStorage.setItem('portfolioItems', JSON.stringify(portfolioItems));
+}
+
+function displayPortfolioItem(item) {
+    const portfolioContainer = document.getElementById('portfolioContainer');
+    const portfolioItemElement = document.createElement('div');
+    portfolioItemElement.classList.add('portfolio-item');
+
+    const portfolioDetails = document.createElement('div');
+    portfolioDetails.classList.add('portfolio-details');
+
+    const titleElement = document.createElement('h3');
+    titleElement.textContent = item.videoTitle;
+
+    const videoFileName = document.createElement('p');
+    videoFileName.textContent = `Video: ${item.videoFileName}`;
+
+    const audioFileName = document.createElement('p');
+    audioFileName.textContent = `Audio: ${item.audioFileName}`;
+
+    portfolioDetails.appendChild(titleElement);
+    portfolioDetails.appendChild(videoFileName);
+    portfolioDetails.appendChild(audioFileName);
+    portfolioItemElement.appendChild(portfolioDetails);
+
+    const downloadButtons = document.createElement('div');
+    downloadButtons.classList.add('download-buttons');
+
+    if (item.videoFileContent) {
+        const videoDownloadButton = document.createElement('button');
+        videoDownloadButton.classList.add('download-button');
+        videoDownloadButton.textContent = 'Download Video';
+        videoDownloadButton.onclick = function() {
+            const videoDownloadLink = document.createElement('a');
+            videoDownloadLink.href = item.videoFileContent;
+            videoDownloadLink.download = item.videoFileName;
+            document.body.appendChild(videoDownloadLink);
+            videoDownloadLink.click();
+            document.body.removeChild(videoDownloadLink);
+        };
+        downloadButtons.appendChild(videoDownloadButton);
+    }
+
+    if (item.audioFileContent) {
+        const audioDownloadButton = document.createElement('button');
+        audioDownloadButton.classList.add('download-button');
+        audioDownloadButton.textContent = 'Download Audio';
+        audioDownloadButton.onclick = function() {
+            const audioDownloadLink = document.createElement('a');
+            audioDownloadLink.href = item.audioFileContent;
+            audioDownloadLink.download = item.audioFileName;
+            document.body.appendChild(audioDownloadLink);
+            audioDownloadLink.click();
+            document.body.removeChild(audioDownloadLink);
+        };
+        downloadButtons.appendChild(audioDownloadButton);
+    }
+
+    portfolioItemElement.appendChild(downloadButtons);
+    portfolioContainer.appendChild(portfolioItemElement);
+}
+
+document.getElementById('contentForm').addEventListener('submit', function(event) {
+    event.preventDefault();
+
+    const videoTitle = document.getElementById('videoTitle').value;
+    const videoInput = document.getElementById('videoFile');
+    const audioInput = document.getElementById('audioFile');
+
+    const videoFile = videoInput.files[0];
+    const audioFile = audioInput.files[0];
+
+    const readerVideo = new FileReader();
+    const readerAudio = new FileReader();
+
+    let videoFileContent = null;
+    let audioFileContent = null;
+
+    // Read video file as Data URL (Base64)
+    readerVideo.onload = function(e) {
+        videoFileContent = e.target.result;
+        // Check if both files are processed
+        if (audioFileContent !== null) {
+            addItemToPortfolio();
+        }
+    };
+    readerVideo.readAsDataURL(videoFile);
+
+    // Read audio file as Data URL (Base64)
+    readerAudio.onload = function(e) {
+        audioFileContent = e.target.result;
+        // Check if both files are processed
+        if (videoFileContent !== null) {
+            addItemToPortfolio();
+        }
+    };
+    readerAudio.readAsDataURL(audioFile);
+
+    function addItemToPortfolio() {
+        const newPortfolioItem = {
+            videoTitle: videoTitle,
+            videoFileName: videoFile ? videoFile.name : '',
+            audioFileName: audioFile ? audioFile.name : '',
+            videoFileContent: videoFileContent,
+            audioFileContent: audioFileContent
+        };
+
+        savePortfolio(newPortfolioItem);
+        displayPortfolioItem(newPortfolioItem); // Add the new item to the display immediately
+        document.getElementById('uploadForm').style.display = 'none'; // Hide the upload form
+        document.getElementById('portfolioContainer').style.display = 'block'; // Show the portfolio container
+        document.getElementById('contentForm').reset(); // Clear the form
+    }
+});
     </script>
 
 </body>
